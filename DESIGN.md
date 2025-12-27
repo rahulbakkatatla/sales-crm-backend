@@ -105,7 +105,8 @@ NEVER ALLOW: Updating a lead once it is marked as CONVERTED or LOST.
 
 NEVER ALLOW: Creation of duplicate leads with the same primary contact identifier.
 
-NEVER ALLOW: Deleting a lead permanently from the system.
+NEVER ALLOW: Permanent deletion of a lead (handled by data integrity rules).
+
 
 
 ## User & Role Rules
@@ -477,6 +478,7 @@ NEVER ALLOW: Access to authentication-sensitive endpoints over insecure channels
 
 NEVER ALLOW: Reuse of invalidated or revoked authentication credentials.
 
+Authorization checks are enforced only after successful authentication.
 
 ## Authorization Rules
 
@@ -606,6 +608,9 @@ NEVER ALLOW: Bypassing authorization using indirect references (IDs).
 
 NEVER ALLOW: Authorization logic duplication across layers.
 
+Managers may modify leads only within their assigned team scope.
+
+
 
 ## Activity Rules
 
@@ -727,6 +732,8 @@ NEVER ALLOW: Activities on leads marked as LOST.
 NEVER ALLOW: Activities on leads not yet assigned.
 
 NEVER ALLOW: Editing activity ownership after creation.
+
+NEVER ALLOW: Activities on leads marked as CONVERTED.
 
 
 
@@ -850,6 +857,21 @@ NEVER ALLOW: Duplicate customers from the same primary lead.
 NEVER ALLOW: Conversion rollback after customer creation.
 
 NEVER ALLOW: Data modification that breaks historical consistency.
+
+
+---
+
+## Design Freeze Notice
+
+All business rules, authorization constraints, and data integrity guarantees
+defined in this document are considered frozen as of the completion of Week 1.
+
+All future low-level design, implementation, database modeling, and API design
+must strictly adhere to these rules.
+
+Any change to system behavior or permissions requires an explicit update to
+this document before implementation.
+
 
 
 
