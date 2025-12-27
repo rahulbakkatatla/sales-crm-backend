@@ -478,3 +478,378 @@ NEVER ALLOW: Access to authentication-sensitive endpoints over insecure channels
 NEVER ALLOW: Reuse of invalidated or revoked authentication credentials.
 
 
+## Authorization Rules
+
+Authorization defines what an authenticated user is allowed to do
+and what data they are permitted to access.
+
+Authorization answers one question only:
+"What are you allowed to do?"
+
+Authorization rules are strictly role-based and ownership-aware.
+
+---
+
+### Rule ID: AUTHZ_NA_01
+Area: Lead Access  
+Scenario: Viewing leads  
+Triggered by: Salesperson  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- A Salesperson should not be allowed to view leads that are not assigned to them.
+
+Why this rule exists:
+- Sales data is sensitive and ownership-based.
+- Salespersons should only access leads they are responsible for.
+
+What could break if this rule is missing:
+- Exposure of other salespersons’ leads  
+- Internal competition and misuse  
+- Data privacy violations  
+- Loss of trust within sales teams  
+
+---
+
+### Rule ID: AUTHZ_NA_02
+Area: Lead Modification  
+Scenario: Updating lead details  
+Triggered by: Salesperson  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- A Salesperson should not be allowed to modify leads not owned by them.
+
+Why this rule exists:
+- Ownership implies responsibility.
+- Unauthorized edits corrupt data reliability.
+
+What could break if this rule is missing:
+- Leads modified without accountability  
+- Conflicting sales actions  
+- Reporting inaccuracies  
+
+---
+
+### Rule ID: AUTHZ_NA_03
+Area: Manager Scope  
+Scenario: Accessing leads  
+Triggered by: Manager  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- A Manager should not be allowed to access leads outside their assigned team.
+
+Why this rule exists:
+- Managers operate within a defined organizational boundary.
+- Cross-team access violates data isolation.
+
+What could break if this rule is missing:
+- Unauthorized visibility across teams  
+- Data leakage between departments  
+- Organizational boundary violations  
+
+---
+
+### Rule ID: AUTHZ_NA_04
+Area: Administrative Privileges  
+Scenario: Performing system-level actions  
+Triggered by: Non-Admin user  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- Non-Admin users should not be allowed to perform system-level administrative actions.
+
+Why this rule exists:
+- System-level changes affect all users.
+- Only Admins have the authority and accountability.
+
+What could break if this rule is missing:
+- System misconfiguration  
+- Unauthorized privilege usage  
+- Untraceable system changes  
+
+---
+
+### Rule ID: AUTHZ_NA_05
+Area: Report Access  
+Scenario: Viewing performance reports  
+Triggered by: Salesperson  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- A Salesperson should not be allowed to view aggregated team or organization-wide performance reports.
+
+Why this rule exists:
+- Reports contain sensitive performance data.
+- Visibility must align with responsibility.
+
+What could break if this rule is missing:
+- Internal performance conflicts  
+- Misinterpretation of metrics  
+- Data misuse  
+
+---
+
+### ADDITIONAL AUTHORIZATION RULES
+
+NEVER ALLOW: Access to any resource without explicit permission checks.
+
+NEVER ALLOW: Role-based access decisions in controllers.
+
+NEVER ALLOW: Bypassing authorization using indirect references (IDs).
+
+NEVER ALLOW: Authorization logic duplication across layers.
+
+
+## Activity Rules
+
+Activities represent sales actions such as calls, meetings,
+and follow-ups performed against leads.
+
+Activities exist only in the context of a lead.
+
+---
+
+### Rule ID: ACT_NA_01
+Area: Activity Creation  
+Scenario: Creating an activity  
+Triggered by: Any user  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- The system should not allow creation of an activity without an associated lead.
+
+Why this rule exists:
+- Activities have no meaning without a lead.
+- Ensures traceable sales actions.
+
+What could break if this rule is missing:
+- Orphan activities  
+- Broken sales history  
+- Invalid reporting  
+
+---
+
+### Rule ID: ACT_NA_02
+Area: Activity Ownership  
+Scenario: Creating or editing activities  
+Triggered by: Salesperson  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- A Salesperson should not be allowed to create or edit activities for leads they do not own.
+
+Why this rule exists:
+- Activities represent work done by the owner.
+- Prevents false or misleading activity logs.
+
+What could break if this rule is missing:
+- Fake activity entries  
+- Inflated performance metrics  
+- Accountability loss  
+
+---
+
+### Rule ID: ACT_NA_03
+Area: Activity Modification  
+Scenario: Editing completed activities  
+Triggered by: Any user  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- Completed activities should not be editable.
+
+Why this rule exists:
+- Activities are historical records.
+- Editing breaks audit integrity.
+
+What could break if this rule is missing:
+- Manipulated sales history  
+- Invalid performance evaluation  
+- Audit trail corruption  
+
+---
+
+### Rule ID: ACT_NA_04
+Area: Activity Deletion  
+Scenario: Deleting activities  
+Triggered by: Any user  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- Activities should not be permanently deleted from the system.
+
+Why this rule exists:
+- Activities provide historical accountability.
+- Deletion causes loss of sales traceability.
+
+What could break if this rule is missing:
+- Incomplete sales timelines  
+- Disputed sales actions  
+- Loss of audit confidence  
+
+---
+
+### Rule ID: ACT_NA_05
+Area: Activity Timing  
+Scenario: Logging future-dated activities  
+Triggered by: Salesperson  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- Activities should not be logged for future dates unless explicitly marked as planned follow-ups.
+
+Why this rule exists:
+- Prevents false activity inflation.
+- Maintains accurate timelines.
+
+What could break if this rule is missing:
+- Fake productivity signals  
+- Misleading activity counts  
+
+---
+
+### ADDITIONAL ACTIVITY RULES
+
+NEVER ALLOW: Activities on leads marked as LOST.
+
+NEVER ALLOW: Activities on leads not yet assigned.
+
+NEVER ALLOW: Editing activity ownership after creation.
+
+
+
+## Customer & Data Integrity Rules
+
+Customers represent successfully converted leads.
+Data integrity rules ensure consistency, traceability,
+and correctness across the system lifecycle.
+
+---
+
+### Rule ID: CUST_NA_01
+Area: Lead Conversion  
+Scenario: Converting a lead to a customer  
+Triggered by: Salesperson  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- A lead should not be converted to a customer unless it is in an eligible terminal sales stage.
+
+Why this rule exists:
+- Conversion reflects successful sales completion.
+- Prevents premature customer creation.
+
+What could break if this rule is missing:
+- Fake customer records  
+- Inaccurate revenue tracking  
+- Misleading business metrics  
+
+---
+
+### Rule ID: CUST_NA_02
+Area: Customer Creation  
+Scenario: Creating customer records  
+Triggered by: Any user  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- Customers should not be created directly without originating from a lead.
+
+Why this rule exists:
+- Ensures complete sales traceability.
+- Maintains lead-to-customer lineage.
+
+What could break if this rule is missing:
+- Orphan customer records  
+- Loss of sales history  
+- Broken analytics  
+
+---
+
+### Rule ID: CUST_NA_03
+Area: Customer Modification  
+Scenario: Editing customer data  
+Triggered by: Any user  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- Critical customer identity fields should not be modified after creation.
+
+Why this rule exists:
+- Customers represent finalized business entities.
+- Identity consistency is mandatory.
+
+What could break if this rule is missing:
+- Duplicate customers  
+- Broken integrations  
+- Reporting inconsistencies  
+
+---
+
+### Rule ID: CUST_NA_04
+Area: Data Deletion  
+Scenario: Deleting customers or leads  
+Triggered by: Any user  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- Customers and leads should not be permanently deleted from the system.
+
+Why this rule exists:
+- Business systems must retain historical records.
+- Deletion causes irreversible data loss.
+
+What could break if this rule is missing:
+- Compliance violations  
+- Audit failures  
+- Data trust erosion  
+
+---
+
+### Rule ID: CUST_NA_05
+Area: Referential Integrity  
+Scenario: Removing linked data  
+Triggered by: Any user  
+
+Rule Type: NEVER ALLOW  
+
+Rule Statement:
+- The system should not allow orphaned references between leads, activities, and customers.
+
+Why this rule exists:
+- Data relationships must remain consistent.
+- Orphan records indicate system corruption.
+
+What could break if this rule is missing:
+- Broken queries  
+- Invalid reports  
+- System instability  
+
+---
+
+### ADDITIONAL DATA INTEGRITY RULES
+
+NEVER ALLOW: Duplicate customers from the same primary lead.
+
+NEVER ALLOW: Conversion rollback after customer creation.
+
+NEVER ALLOW: Data modification that breaks historical consistency.
+
+
+
