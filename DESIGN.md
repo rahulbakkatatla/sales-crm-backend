@@ -874,4 +874,134 @@ this document before implementation.
 
 
 
+## Low Level Design — Core Domain Entities & Responsibilities
+
+This section identifies the core domain entities of SalesCRM and clearly
+defines their responsibilities and boundaries.
+
+The goal is to ensure that each entity has a single, well-defined purpose
+and that no entity assumes responsibilities outside its scope.
+
+---
+
+### User
+
+Represents a human actor interacting with the system.
+
+Responsibilities:
+- Holds identity and authentication credentials
+- Has exactly one assigned role (Admin, Manager, or Salesperson)
+- Owns an operational scope (self, team, or system-wide)
+- Acts as the initiator of system actions
+
+Explicitly NOT responsible for:
+- Enforcing business rules
+- Managing permissions of other users
+- Directly modifying system configuration (unless Admin)
+
+Notes:
+- User lifecycle is controlled (ACTIVE → DEACTIVATED)
+- Deactivated users retain historical ownership but lose access
+
+---
+
+### Role
+
+Represents the authority level assigned to a user.
+
+Responsibilities:
+- Defines what actions a user is permitted to perform
+- Determines data visibility scope
+- Acts as the basis for authorization decisions
+
+Explicitly NOT responsible for:
+- User identity
+- Business logic enforcement
+- Direct data manipulation
+
+Notes:
+- Each user has exactly one role
+- Roles are hierarchical and non-overlapping
+- Role changes are strictly controlled by system rules
+
+---
+
+### Lead
+
+Represents a potential customer in the sales pipeline.
+
+Responsibilities:
+- Stores contact and qualification information
+- Maintains current sales status
+- Acts as the central unit of sales work
+- Owns associated sales activities
+
+Explicitly NOT responsible for:
+- Managing user permissions
+- Storing customer-level data after conversion
+- Enforcing authorization decisions
+
+Notes:
+- Lead lifecycle follows a controlled workflow
+- Leads are immutable after terminal states (CONVERTED / LOST)
+- Leads always have an owner
+
+---
+
+### Activity
+
+Represents a sales action performed against a lead.
+
+Responsibilities:
+- Records calls, meetings, and follow-ups
+- Captures timestamped sales effort
+- Maintains historical traceability
+
+Explicitly NOT responsible for:
+- Existing independently of a lead
+- Modifying lead ownership or status
+- Enforcing business or permission rules
+
+Notes:
+- Activities are immutable once completed
+- Activities cannot exist without a parent lead
+- Activities reflect factual sales history
+
+---
+
+### Customer
+
+Represents a successfully converted lead.
+
+Responsibilities:
+- Stores finalized customer identity
+- Acts as a terminal business entity
+- Serves as a reference for post-sale processes
+
+Explicitly NOT responsible for:
+- Managing lead-stage logic
+- Accepting direct creation outside lead conversion
+- Reverting back to lead state
+
+Notes:
+- Customers are created only via lead conversion
+- Customer identity fields are stable
+- Customers are never permanently deleted
+
+---
+
+## Entity Responsibility Guarantees
+
+- Each entity has a single, clearly defined purpose
+- No entity enforces business rules directly
+- All rule enforcement occurs outside entities
+- Entity boundaries prevent responsibility overlap
+
+This separation ensures maintainability, clarity,
+and predictable system behavior.
+
+
+
+
+
 
