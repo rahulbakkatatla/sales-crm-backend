@@ -1151,6 +1151,143 @@ auditable, and aligned with real-world sales processes.
 
 
 
+## Low Level Design — Layered Architecture & Responsibility Boundaries
+
+This section defines the internal structure of SalesCRM using a layered
+architecture. Each layer has a clearly defined responsibility and strict
+boundaries to prevent logic leakage and maintain system correctness.
+
+The design ensures that business rules defined in Week 1 are enforced
+consistently and centrally.
+
+---
+
+## Architectural Layers
+
+SalesCRM follows a layered backend architecture consisting of:
+
+1. API / Controller Layer
+2. Service Layer
+3. Repository / Data Access Layer
+
+Each layer serves a specific purpose and must not assume responsibilities
+belonging to another layer.
+
+---
+
+## API / Controller Layer
+
+Purpose:
+- Acts as the system’s entry point for external requests
+- Handles request validation at a structural level
+- Converts external input into internal commands
+
+Responsibilities:
+- Accept and parse incoming requests
+- Validate request format (required fields, data types)
+- Delegate execution to the appropriate service
+- Translate service responses into API responses
+
+Explicitly NOT responsible for:
+- Enforcing business rules
+- Performing authorization decisions
+- Managing transactions
+- Accessing data directly
+
+Guarantees:
+- Controllers remain thin and predictable
+- No business logic duplication
+- All decisions are deferred to services
+
+---
+
+## Service Layer
+
+Purpose:
+- Acts as the core decision-making layer
+- Enforces all business, authorization, and lifecycle rules
+
+Responsibilities:
+- Enforce rules defined in Week 1
+- Validate ownership and permissions
+- Control entity state transitions
+- Coordinate interactions between multiple entities
+- Ensure atomic execution of business operations
+
+Explicitly NOT responsible for:
+- Handling HTTP or transport-level concerns
+- Persisting data directly
+- Exposing internal entities externally
+
+Guarantees:
+- Single source of truth for business logic
+- Consistent rule enforcement across the system
+- Predictable and testable behavior
+
+---
+
+## Repository / Data Access Layer
+
+Purpose:
+- Handles interaction with the persistence mechanism
+- Abstracts data storage details from services
+
+Responsibilities:
+- Retrieve and store entities
+- Execute data queries and persistence operations
+- Maintain referential integrity at storage level
+
+Explicitly NOT responsible for:
+- Business rule enforcement
+- Authorization checks
+- Entity lifecycle decisions
+
+Guarantees:
+- Data access remains isolated
+- Persistence logic does not affect business correctness
+- Storage technology can change without impacting services
+
+---
+
+## Cross-Layer Rules
+
+- Business rules must exist only in the Service layer
+- Authorization checks must occur before any state modification
+- Controllers must never call repositories directly
+- Repositories must never contain conditional business logic
+
+---
+
+## Request Processing Flow (High-Level)
+
+1. Request enters via Controller
+2. Controller validates request structure
+3. Controller delegates to Service
+4. Service performs:
+   - Authentication context verification
+   - Authorization and ownership checks
+   - Business rule validation
+   - State transition decisions
+5. Service interacts with Repository
+6. Repository performs data access
+7. Service returns result to Controller
+8. Controller returns response
+
+---
+
+## Architectural Guarantees
+
+- Clear separation of concerns
+- Centralized rule enforcement
+- Reduced risk of inconsistent behavior
+- Easier testing and future scaling
+
+This layered approach ensures that SalesCRM remains maintainable,
+secure, and aligned with professional backend engineering practices.
+
+
+
+
 
 
 
