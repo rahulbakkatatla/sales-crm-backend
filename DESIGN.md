@@ -1001,6 +1001,155 @@ This separation ensures maintainability, clarity,
 and predictable system behavior.
 
 
+## Low Level Design — Entity Relationships & Lifecycles
+
+This section defines how core domain entities in SalesCRM relate to each other
+and how they evolve over time.
+
+The goal is to ensure:
+- Clear ownership
+- Predictable state transitions
+- No orphaned or ambiguous data states
+
+---
+
+## Entity Relationships
+
+### User → Lead
+Relationship:
+- One User can own multiple Leads
+- Each Lead has exactly one owning User at any time
+
+Purpose:
+- Ownership establishes accountability
+- All sales actions are traceable to a responsible user
+
+Constraints:
+- Lead ownership changes are controlled by role rules
+- Leads must always have an owner
+
+---
+
+### Lead → Activity
+Relationship:
+- One Lead can have multiple Activities
+- Each Activity belongs to exactly one Lead
+
+Purpose:
+- Activities represent sales effort against a lead
+- Ensures complete sales history per lead
+
+Constraints:
+- Activities cannot exist without a parent Lead
+- Activity ownership is implicitly derived from Lead ownership
+
+---
+
+### Lead → Customer
+Relationship:
+- One Lead can convert into at most one Customer
+- Each Customer originates from exactly one Lead
+
+Purpose:
+- Maintains full sales traceability
+- Preserves lead-to-customer lineage
+
+Constraints:
+- Direct Customer creation is not allowed
+- Conversion is a terminal, one-way operation
+
+---
+
+### User → Activity (Indirect)
+Relationship:
+- A User performs Activities via owned Leads
+
+Purpose:
+- Activities reflect user effort without duplicating ownership
+- Avoids conflicting ownership models
+
+Constraints:
+- A User cannot perform activities on unowned Leads
+- Activity records remain even after user deactivation
+
+---
+
+## Entity Lifecycles
+
+### User Lifecycle
+States:
+- ACTIVE
+- DEACTIVATED
+
+Lifecycle Flow:
+ACTIVE → DEACTIVATED
+
+Rules:
+- Deactivated users cannot authenticate or perform actions
+- Historical ownership and activity records remain intact
+- Deactivation requires reassignment of owned Leads
+
+---
+
+### Lead Lifecycle
+States (conceptual):
+- NEW
+- IN_PROGRESS
+- QUALIFIED
+- CONVERTED (terminal)
+- LOST (terminal)
+
+Lifecycle Flow:
+NEW → IN_PROGRESS → QUALIFIED → CONVERTED  
+NEW → IN_PROGRESS → LOST
+
+Rules:
+- Stage skipping is not allowed
+- Terminal states are immutable
+- Activities are allowed only in non-terminal states
+
+---
+
+### Activity Lifecycle
+States:
+- CREATED
+- COMPLETED (terminal)
+
+Lifecycle Flow:
+CREATED → COMPLETED
+
+Rules:
+- Completed activities are immutable
+- Activities cannot be deleted
+- Future-dated activities must be explicitly marked as follow-ups
+
+---
+
+### Customer Lifecycle
+States:
+- CREATED (terminal)
+
+Lifecycle Flow:
+CREATED
+
+Rules:
+- Customers are created only via Lead conversion
+- Customer identity fields are stable
+- Customers cannot revert to Leads
+
+---
+
+## Lifecycle Integrity Guarantees
+
+- No entity exists without a valid parent relationship
+- All terminal states are immutable
+- State transitions are explicit and controlled
+- Historical data is preserved across all lifecycles
+
+This ensures that system behavior remains predictable,
+auditable, and aligned with real-world sales processes.
+
+
 
 
 
