@@ -1286,6 +1286,543 @@ This layered approach ensures that SalesCRM remains maintainable,
 secure, and aligned with professional backend engineering practices.
 
 
+## Low Level Design — Rule to Service Mapping
+
+This section maps the business rules defined in Week 1
+to the services responsible for enforcing them.
+
+The goal is to ensure that:
+- Every rule has a clear enforcement point
+- No rule is duplicated across services
+- No rule is left unenforced
+
+This mapping guarantees that rules are enforced
+consistently and predictably at runtime.
+
+---
+
+## Core Services Overview
+
+SalesCRM defines the following core services:
+
+- UserService
+- AuthService
+- AuthorizationService
+- LeadService
+- ActivityService
+- CustomerService
+
+Each service owns enforcement of rules related
+to its primary domain.
+
+---
+
+## UserService
+
+Responsible for:
+- User lifecycle management
+- Role assignment enforcement
+- User deactivation handling
+
+Enforces:
+- User creation restrictions (USER_NA_01, USER_NA_02)
+- Role modification rules (USER_NA_03, USER_NA_04)
+- User deactivation constraints (USER_NA_05, USER_NA_06)
+- Role misuse prevention related to user actions
+
+Guarantees:
+- No privilege escalation
+- No orphaned ownership after deactivation
+- Controlled role transitions
+
+---
+
+## AuthService
+
+Responsible for:
+- User authentication
+- Session / token lifecycle management
+
+Enforces:
+- Authentication requirements for access (AUTH_NA_01)
+- Credential validation (AUTH_NA_02)
+- Deactivated user access blocking (AUTH_NA_03)
+- Token expiration and logout behavior (AUTH_NA_04, AUTH_NA_05)
+- Failed authentication attempt limits (AUTH_NA_07)
+
+Guarantees:
+- Every request is associated with a verified identity
+- Authentication state is explicit and time-bound
+
+---
+
+## AuthorizationService
+
+Responsible for:
+- Permission checks
+- Ownership and scope validation
+
+Enforces:
+- Role-based access rules (AUTHZ rules)
+- Ownership-based data access
+- Team-scope restrictions for Managers
+- Prevention of cross-role misuse
+
+Guarantees:
+- No data access without explicit permission
+- Consistent authorization decisions across services
+
+---
+
+## LeadService
+
+Responsible for:
+- Lead lifecycle management
+- Lead ownership enforcement
+- Lead status transitions
+
+Enforces:
+- Lead creation rules (LEAD_NA_01)
+- Lead status workflow constraints (LEAD_NA_02)
+- Ownership change restrictions (LEAD_NA_03)
+- Duplicate lead prevention
+- Terminal state immutability
+
+Guarantees:
+- Leads always follow valid sales workflow
+- Lead ownership is always explicit
+- No invalid or misleading lead states
+
+---
+
+## ActivityService
+
+Responsible for:
+- Activity creation and lifecycle
+- Activity ownership validation
+
+Enforces:
+- Activity-to-lead association rules (ACT_NA_01)
+- Activity ownership constraints (ACT_NA_02)
+- Activity immutability (ACT_NA_03)
+- Activity deletion prevention (ACT_NA_04)
+- Activity timing constraints (ACT_NA_05)
+
+Guarantees:
+- Accurate and immutable sales history
+- No fake or misleading activity records
+
+---
+
+## CustomerService
+
+Responsible for:
+- Lead-to-customer conversion
+- Customer lifecycle enforcement
+
+Enforces:
+- Conversion eligibility rules (CUST_NA_01)
+- Lead-origin-only customer creation (CUST_NA_02)
+- Customer immutability constraints (CUST_NA_03)
+- Referential integrity enforcement (CUST_NA_05)
+
+Guarantees:
+- Clean lead-to-customer lineage
+- No orphaned or duplicate customers
+- Stable customer identity
+
+---
+
+## Cross-Service Enforcement Rules
+
+- Services may collaborate but must not bypass authorization checks
+- AuthorizationService must be consulted before any state-changing operation
+- No service directly accesses data owned by another service without validation
+- Business rules must never be enforced in controllers or repositories
+
+---
+
+## Rule Enforcement Guarantees
+
+- Every Week 1 rule maps to exactly one service
+- No rule is enforced in multiple places
+- Rule ownership is explicit and auditable
+
+This mapping ensures that SalesCRM remains predictable,
+secure, and easy to evolve as the system grows.
+
+
+
+## Low Level Design — Error Handling & Failure Behavior
+
+This section defines how SalesCRM behaves when invalid actions are attempted
+or when business rules are violated.
+
+The goal is to ensure:
+- Predictable system behavior
+- Clear feedback to clients
+- Strong data consistency
+- No partial or silent failures
+
+Error handling is treated as a first-class design concern.
+
+---
+
+## Error Handling Principles
+
+SalesCRM follows these core principles:
+
+- Fail fast on invalid actions
+- Never partially apply business operations
+- Preserve system consistency at all times
+- Provide clear, deterministic error outcomes
+
+No error condition should leave the system
+in an ambiguous or corrupted state.
+
+---
+
+## Rule Violation Handling
+
+When a business rule is violated:
+
+- The requested operation is rejected immediately
+- No state changes are applied
+- No data is persisted
+- A clear error response is returned
+
+Examples:
+- Attempting to skip lead stages
+- Unauthorized access to a lead
+- Activity creation on invalid lead states
+- Invalid role or permission usage
+
+---
+
+## Authorization & Authentication Failures
+
+### Authentication Failures
+Scenarios:
+- Missing authentication
+- Invalid credentials
+- Expired session or token
+- Deactivated user
+
+Behavior:
+- Request is rejected before reaching business logic
+- No service-level processing occurs
+- No data access is attempted
+
+---
+
+### Authorization Failures
+Scenarios:
+- Accessing resources outside permitted scope
+- Modifying unowned data
+- Performing admin actions without privileges
+
+Behavior:
+- Request is rejected at authorization check
+- No business rule execution occurs
+- No data mutation is allowed
+
+---
+
+## Data Integrity Failure Handling
+
+Scenarios:
+- Duplicate lead creation
+- Orphaned relationship detection
+- Invalid lifecycle transitions
+- Conversion attempts from invalid states
+
+Behavior:
+- Entire operation is rolled back
+- System remains in last valid state
+- Referential integrity is preserved
+
+---
+
+## Idempotency & Consistency
+
+Principles:
+- Repeated invalid requests always produce the same result
+- Repeated valid requests do not create duplicate data
+- Terminal states cannot be modified or re-entered
+
+Guarantees:
+- No duplicate customers
+- No duplicate activities from retries
+- No accidental state corruption
+
+---
+
+## Error Categorization (Conceptual)
+
+SalesCRM categorizes errors into:
+
+- Authentication Errors (identity-related)
+- Authorization Errors (permission-related)
+- Business Rule Violations
+- Data Integrity Violations
+
+Each category results in a clear,
+non-overlapping failure outcome.
+
+---
+
+## Observability & Debug Safety
+
+Design guarantees:
+- All rejected actions are traceable to a user identity
+- Rule violations are detectable during debugging
+- No silent ignores or hidden failures
+
+Sensitive internal details are not exposed
+through error responses.
+
+---
+
+## Failure Behavior Guarantees
+
+- No partial writes
+- No silent failures
+- No inconsistent state transitions
+- No data corruption under invalid input
+
+This ensures that SalesCRM behaves predictably
+even under incorrect or malicious usage.
+
+
+## Low Level Design — Authorization & Ownership Flow
+
+This section defines how authentication context, authorization checks,
+and ownership validation are applied during request processing.
+
+The goal is to ensure that:
+- Every action is performed by a verified identity
+- Every data access is permission-checked
+- Ownership is enforced consistently
+- No rule is bypassed due to flow gaps
+
+---
+
+## Request Processing Flow (Authorization-Aware)
+
+Every incoming request that intends to read or modify protected data
+follows the same high-level flow:
+
+1. Authentication Context Resolution
+2. Authorization Validation
+3. Ownership Verification
+4. Business Rule Enforcement
+5. Data Access
+
+No step may be skipped.
+
+---
+
+## Step 1 — Authentication Context Resolution
+
+Purpose:
+- Establish the identity of the requester
+
+Behavior:
+- Extract authenticated user context
+- Verify user is active
+- Attach user identity to request lifecycle
+
+Guarantees:
+- All downstream logic has access to a verified user
+- Anonymous or deactivated users are blocked early
+
+---
+
+## Step 2 — Authorization Validation (Role-Based)
+
+Purpose:
+- Validate whether the user’s role permits the requested action
+
+Behavior:
+- Evaluate role against requested operation
+- Enforce role hierarchy constraints
+- Block unauthorized actions immediately
+
+Examples:
+- Salesperson attempting admin action → rejected
+- Salesperson requesting reports → rejected
+- Manager accessing outside team scope → rejected
+
+Guarantees:
+- Role-based boundaries are respected
+- No unauthorized capability escalation
+
+---
+
+## Step 3 — Ownership Verification (Scope-Based)
+
+Purpose:
+- Enforce data ownership and scope constraints
+
+Behavior:
+- Validate that the user owns or is permitted to act on the target entity
+- Apply scope rules:
+  - Salesperson → own data only
+  - Manager → team data only
+  - Admin → system-wide scope
+
+Examples:
+- Salesperson editing unowned lead → rejected
+- Manager modifying lead outside team → rejected
+
+Guarantees:
+- Ownership is always explicit
+- No cross-user or cross-team data access
+
+---
+
+## Step 4 — Business Rule Enforcement
+
+Purpose:
+- Enforce domain-specific constraints
+
+Behavior:
+- Validate entity state transitions
+- Enforce lifecycle rules
+- Prevent terminal-state modifications
+
+Examples:
+- Skipping lead stages
+- Activities on CONVERTED leads
+- Duplicate customer creation
+
+Guarantees:
+- Business correctness is preserved
+- State transitions are predictable and controlled
+
+---
+
+## Step 5 — Data Access
+
+Purpose:
+- Perform authorized and validated persistence operations
+
+Behavior:
+- Read or write data through repository layer
+- Maintain referential integrity
+- Ensure atomic execution
+
+Guarantees:
+- Data access occurs only after all validations pass
+- No unauthorized or invalid writes reach persistence
+
+---
+
+## Ownership Model Summary
+
+- Ownership is derived, not duplicated
+- Lead ownership determines:
+  - Activity permissions
+  - Modification rights
+- Customer ownership traces back to originating Lead
+- Historical ownership is preserved even after user deactivation
+
+---
+
+## Authorization & Ownership Guarantees
+
+- Authentication always precedes authorization
+- Authorization always precedes ownership checks
+- Ownership checks always precede state changes
+- No direct data access without passing all validations
+
+This flow ensures that SalesCRM enforces security,
+ownership, and business correctness uniformly
+across all system operations.
+
+
+## Low Level Design — Review & Freeze (Week 2)
+
+This section marks the completion and freeze of the Low Level Design (LLD)
+for SalesCRM.
+
+The purpose of this step is to validate that:
+- All business rules have a clear enforcement point
+- All entities have well-defined responsibilities
+- No layer violates its boundaries
+- The system structure is implementation-ready
+
+No new design decisions are introduced at this stage.
+
+---
+
+## LLD Review Checklist
+
+The following validations have been completed:
+
+### Entity Design Validation
+- Each core entity has a single, well-defined responsibility
+- No entity enforces business rules directly
+- Entity lifecycles are explicit and terminal states are immutable
+
+### Relationship & Lifecycle Validation
+- All relationships are ownership-safe and non-ambiguous
+- No entity can exist without a valid parent where required
+- Lead → Activity → Customer lineage is preserved end-to-end
+
+### Layer Responsibility Validation
+- Controllers are limited to request handling only
+- All business rules are enforced in the Service layer
+- Repositories contain no business or authorization logic
+
+### Rule Enforcement Coverage
+- Every Week 1 rule maps to exactly one service
+- No rule is enforced in multiple places
+- No rule is left without an enforcement owner
+
+### Authorization & Ownership Flow Validation
+- Authentication always precedes authorization
+- Authorization always precedes ownership checks
+- Ownership checks always precede state changes
+- No request can bypass validation steps
+
+### Failure Behavior Validation
+- All rule violations fail fast
+- No partial writes are possible
+- System remains consistent under invalid operations
+
+---
+
+## LLD Stability Guarantees
+
+With this design:
+
+- Business rules are centralized and consistent
+- Unauthorized access paths are structurally blocked
+- Entity state transitions are predictable
+- Future changes can be made without breaking core guarantees
+
+This structure supports safe implementation,
+incremental feature growth, and clear interview explanations.
+
+---
+
+## Low Level Design Freeze Notice
+
+The Low Level Design defined in this document is considered frozen
+as of the completion of Week 2.
+
+All implementation work must adhere strictly to:
+- Defined entities and responsibilities
+- Layered architecture boundaries
+- Rule-to-service enforcement mapping
+- Authorization and ownership flow
+
+Any structural or behavioral change requires
+an explicit update to this document before implementation.
+
+
+
 
 
 
