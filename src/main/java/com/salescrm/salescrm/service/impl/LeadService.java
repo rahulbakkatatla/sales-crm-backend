@@ -18,4 +18,17 @@ public class LeadService {
         lead.setStatus(LeadStatus.NEW);
         return lead;
     }
+
+    public Lead getLeadById(Long leadId, String requester) {
+        // fake lead for now
+        Lead lead = new Lead();
+        lead.setOwner("rahul");
+
+        if (!lead.getOwner().equals(requester)) {
+            throw new IllegalArgumentException("Access denied");
+        }
+
+        return lead;
+    }
 }
+

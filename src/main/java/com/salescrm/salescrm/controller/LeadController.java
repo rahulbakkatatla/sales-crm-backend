@@ -18,4 +18,12 @@ public class LeadController {
     public Lead createLead(@RequestBody Lead lead) {
         return leadService.createLead(lead);
     }
+
+    @GetMapping("/{id}")
+    public Lead getLead(@PathVariable Long id,
+                        @RequestParam String requester) {
+        return leadService.getLeadById(id, requester);
+    }
+
 }
+
