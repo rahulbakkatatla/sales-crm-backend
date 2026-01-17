@@ -1,13 +1,22 @@
 package com.salescrm.salescrm.service.impl;
 
+import com.salescrm.salescrm.repository.LeadRepository;
 import com.salescrm.salescrm.domain.Lead;
 import com.salescrm.salescrm.domain.LeadStatus;
 import com.salescrm.salescrm.exception.BusinessRuleViolationException;
 import com.salescrm.salescrm.exception.UnauthorizedAccessException;
 import org.springframework.stereotype.Service;
+import java.util.Optional;
+
 
 @Service
 public class LeadService {
+    private final LeadRepository leadRepository;
+
+    public LeadService(LeadRepository leadRepository) {
+        this.leadRepository = leadRepository;
+    }
+
 
     public Lead createLead(Lead lead) {
 
@@ -21,15 +30,17 @@ public class LeadService {
         }
 
         lead.setStatus(LeadStatus.NEW);
-        return lead;
+        return leadRepository.save(lead);
     }
 
     public Lead getLeadById(Long leadId, String requester) {
 
         // Temporary in-memory lead (no DB yet)
-        Lead lead = new Lead();
-        lead.setOwner("rahul");
-        lead.setStatus(LeadStatus.NEW);
+        Lead lead = leadRepository.findById(leadId)
+                .orElseThrow(() -> new BusinessRuleViolationException(
+                        "Lead not found"
+                ));
+
 
         // AUTHZ_NA_01 — ownership check
         if (!lead.getOwner().equals(requester)) {
@@ -83,6 +94,7 @@ public class LeadService {
         }
 
         lead.setStatus(newStatus);
-        return lead;
+        return leadRepository.save(lead);
+
     }
 }
