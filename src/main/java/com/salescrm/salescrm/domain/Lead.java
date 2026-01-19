@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.Column;
 
 @Entity
 public class Lead {
@@ -15,7 +16,12 @@ public class Lead {
     private Long id;
 
     private String name;
+
+    // FINAL SAFETY NET — DB uniqueness
+    @Column(unique = true)
     private String phone;
+
+    @Column(unique = true)
     private String email;
 
     @Enumerated(EnumType.STRING)
@@ -73,4 +79,3 @@ public class Lead {
         this.owner = owner;
     }
 }
-

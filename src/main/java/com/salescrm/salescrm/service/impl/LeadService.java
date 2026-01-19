@@ -29,9 +29,41 @@ public class LeadService {
             );
         }
 
+        // LEAD_NA_02 — Duplicate prevention (phone/email uniqueness)
+
+        // Check duplicate by phone
+        if (lead.getPhone() != null && !lead.getPhone().isBlank()) {
+            boolean phoneExists = leadRepository.findByPhone(lead.getPhone()).isPresent();
+            if (phoneExists) {
+                throw new BusinessRuleViolationException(
+                        "Lead already exists with this phone or email"
+                );
+            }
+        }
+
+        // Check duplicate by email
+        if (lead.getEmail() != null && !lead.getEmail().isBlank()) {
+            boolean emailExists = leadRepository.findByEmail(lead.getEmail()).isPresent();
+            if (emailExists) {
+                throw new BusinessRuleViolationException(
+                        "Lead already exists with this phone or email"
+                );
+            }
+        }
+
         lead.setStatus(LeadStatus.NEW);
-        return leadRepository.save(lead);
+
+        // FINAL SAFETY NET — DB uniqueness handling
+        try {
+            return leadRepository.save(lead);
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            throw new BusinessRuleViolationException(
+                    "Lead already exists with this phone or email"
+            );
+        }
     }
+
+
 
     public Lead getLeadById(Long leadId, String requester) {
 
@@ -92,6 +124,7 @@ public class LeadService {
             default:
                 throw new BusinessRuleViolationException("Invalid status transition");
         }
+
 
         lead.setStatus(newStatus);
         return leadRepository.save(lead);
