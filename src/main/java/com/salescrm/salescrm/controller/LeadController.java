@@ -21,7 +21,8 @@ public class LeadController {
     // CREATE LEAD
     // =========================
     @PostMapping
-    public LeadResponse createLead(@RequestBody CreateLeadRequest request) {
+    public LeadResponse createLead(@RequestBody CreateLeadRequest request,
+                                   @RequestParam String requester) {
 
         // 1️⃣ Controller builds domain object (Lead)
         Lead lead = new Lead();
@@ -29,10 +30,13 @@ public class LeadController {
         lead.setPhone(request.getPhone());
         lead.setEmail(request.getEmail());
 
-        // 2️⃣ Service applies business rules
+        // 2️⃣ Owner is derived from request context (NOT from body)
+        lead.setOwner(requester);
+
+        // 3️⃣ Service enforces business rules + persistence
         Lead savedLead = leadService.createLead(lead);
 
-        // 3️⃣ Controller converts domain → response DTO
+        // 4️⃣ Convert domain → response DTO
         return new LeadResponse(
                 savedLead.getId(),
                 savedLead.getName(),
@@ -48,7 +52,7 @@ public class LeadController {
     public LeadResponse getLead(@PathVariable Long id,
                                 @RequestParam String requester) {
 
-        // 1️⃣ Get domain object from service
+        // 1️⃣ Service enforces ownership + deleted check
         Lead lead = leadService.getLeadById(id, requester);
 
         // 2️⃣ Convert domain → response DTO
@@ -68,7 +72,7 @@ public class LeadController {
                                          @RequestParam String requester,
                                          @RequestParam LeadStatus status) {
 
-        // 1️⃣ Service enforces lifecycle + ownership
+        // 1️⃣ Service enforces lifecycle + immutability
         Lead updatedLead = leadService.updateLeadStatus(id, status, requester);
 
         // 2️⃣ Convert domain → response DTO
@@ -79,5 +83,15 @@ public class LeadController {
                 updatedLead.getOwner()
         );
     }
-}
 
+    // =========================
+    // SOFT DELETE LEAD
+    // =========================
+    @DeleteMapping("/{id}")
+    public void deleteLead(@PathVariable Long id,
+                           @RequestParam String requester) {
+
+        // 1️⃣ Service performs soft delete + rule checks
+        leadService.deleteLead(id, requester);
+    }
+}

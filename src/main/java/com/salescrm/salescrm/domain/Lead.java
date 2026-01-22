@@ -29,6 +29,10 @@ public class Lead {
 
     private String owner;
 
+    // SOFT DELETE FLAG — Day 6
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     // ===== GETTERS =====
     public Long getId() {
         return id;
@@ -54,6 +58,10 @@ public class Lead {
         return owner;
     }
 
+    public boolean isDeleted() {
+        return deleted;
+    }
+
     // ===== SETTERS =====
     public void setId(Long id) {
         this.id = id;
@@ -77,5 +85,9 @@ public class Lead {
 
     public void setOwner(String owner) {
         this.owner = owner;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 }

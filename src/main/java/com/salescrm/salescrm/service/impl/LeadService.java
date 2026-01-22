@@ -1,22 +1,23 @@
 package com.salescrm.salescrm.service.impl;
 
-import com.salescrm.salescrm.repository.LeadRepository;
 import com.salescrm.salescrm.domain.Lead;
 import com.salescrm.salescrm.domain.LeadStatus;
 import com.salescrm.salescrm.exception.BusinessRuleViolationException;
 import com.salescrm.salescrm.exception.UnauthorizedAccessException;
+import com.salescrm.salescrm.repository.LeadRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import java.util.Optional;
-
 
 @Service
 public class LeadService {
+
     private final LeadRepository leadRepository;
 
     public LeadService(LeadRepository leadRepository) {
         this.leadRepository = leadRepository;
     }
 
+    // ================= CREATE LEAD =================
 
     public Lead createLead(Lead lead) {
 
@@ -29,52 +30,54 @@ public class LeadService {
             );
         }
 
-        // LEAD_NA_02 — Duplicate prevention (phone/email uniqueness)
+        // LEAD_NA_02 — owner is mandatory
+        if (lead.getOwner() == null || lead.getOwner().isBlank()) {
+            throw new BusinessRuleViolationException(
+                    "Lead owner is required"
+            );
+        }
 
-        // Check duplicate by phone
+        // LEAD_NA_03 — duplicate prevention (service level)
+
         if (lead.getPhone() != null && !lead.getPhone().isBlank()) {
-            boolean phoneExists = leadRepository.findByPhone(lead.getPhone()).isPresent();
-            if (phoneExists) {
+            if (leadRepository.findByPhone(lead.getPhone()).isPresent()) {
                 throw new BusinessRuleViolationException(
                         "Lead already exists with this phone or email"
                 );
             }
         }
 
-        // Check duplicate by email
         if (lead.getEmail() != null && !lead.getEmail().isBlank()) {
-            boolean emailExists = leadRepository.findByEmail(lead.getEmail()).isPresent();
-            if (emailExists) {
+            if (leadRepository.findByEmail(lead.getEmail()).isPresent()) {
                 throw new BusinessRuleViolationException(
                         "Lead already exists with this phone or email"
                 );
             }
         }
 
+        // Initial lifecycle state
         lead.setStatus(LeadStatus.NEW);
 
-        // FINAL SAFETY NET — DB uniqueness handling
+        // FINAL SAFETY NET — DB-level uniqueness (race-condition safe)
         try {
             return leadRepository.save(lead);
-        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+        } catch (DataIntegrityViolationException ex) {
             throw new BusinessRuleViolationException(
                     "Lead already exists with this phone or email"
             );
         }
     }
 
-
+    // ================= GET LEAD =================
 
     public Lead getLeadById(Long leadId, String requester) {
 
-        // Temporary in-memory lead (no DB yet)
         Lead lead = leadRepository.findById(leadId)
                 .orElseThrow(() -> new BusinessRuleViolationException(
                         "Lead not found"
                 ));
 
-
-        // AUTHZ_NA_01 — ownership check
+        // AUTHZ_NA_01 — ownership enforcement
         if (!lead.getOwner().equals(requester)) {
             throw new UnauthorizedAccessException(
                     "You do not own this lead"
@@ -84,11 +87,13 @@ public class LeadService {
         return lead;
     }
 
+    // ================= UPDATE STATUS =================
+
     public Lead updateLeadStatus(Long leadId, LeadStatus newStatus, String requester) {
 
         Lead lead = getLeadById(leadId, requester);
 
-        // Terminal state immutability
+        // LEAD_NA_04 — terminal state immutability
         if (lead.getStatus() == LeadStatus.CONVERTED ||
                 lead.getStatus() == LeadStatus.LOST) {
 
@@ -99,7 +104,7 @@ public class LeadService {
 
         LeadStatus currentStatus = lead.getStatus();
 
-        // Enforce lifecycle transitions
+        // LEAD_NA_05 — lifecycle transition rules
         switch (currentStatus) {
 
             case NEW:
@@ -125,9 +130,25 @@ public class LeadService {
                 throw new BusinessRuleViolationException("Invalid status transition");
         }
 
-
         lead.setStatus(newStatus);
         return leadRepository.save(lead);
-
     }
+
+    public void deleteLead(Long leadId, String requester) {
+
+        Lead lead = getLeadById(leadId, requester);
+
+        // LEAD_NA_06 — terminal leads cannot be deleted
+        if (lead.getStatus() == LeadStatus.CONVERTED ||
+                lead.getStatus() == LeadStatus.LOST) {
+
+            throw new BusinessRuleViolationException(
+                    "Cannot delete a converted or lost lead"
+            );
+        }
+
+        lead.setDeleted(true);
+        leadRepository.save(lead);
+    }
+
 }
